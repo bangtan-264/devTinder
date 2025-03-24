@@ -1,32 +1,34 @@
 const express = require('express');
 const app = express();
 
-//This will only handle GET call to /user
-app.get("/user", (req, res) => {
-    res.send({firstName: "Sahil Verma", lastName: "Verma", age: "22"});
+const connectDb = require("./config/database.js");
+// const {adminAuth, userAuth} = require("./middlewares/auth");
+const User = require("./models/user.js");
+
+app.post("/signup", async (req, res) => {
+    const user = new User({
+        firstName : "Sahil", 
+        lastName : "Verma", 
+        emailId: "sahilverma2642@gmail.com",
+        password: "Pswd@123"
+    });
+
+    try {
+        await user.save();
+        res.send("user saved successfully");   
+    } catch(err) {
+        res.status(404).send("Error in saving user :", err);
+    }
 });
 
-app.post("/user", (req, res) => {
-    res.send("User data saved successfully");
-});
+connectDb()
+.then(() => {
+    console.log("Database connection established successfully");
 
-app.put("/user", (req, res) => {
-    res.send("User data updated successfully");
-});
-
-app.patch("/user", (req, res) => {
-    res.send("User age updated successfully");
-});
-
-app.delete("/user", (req, res) => {
-    res.send("user deleted successfully");
-});
-
-//This will match all the HTTP method api call to /test
-app.use("/test", (req, res) => {
-    res.send("Hello from Mr. Test-ick-llsss");
-});
-
-app.listen('7777', () => {
-    console.log('Server is successfully running');
+    app.listen('7777', () => {
+        console.log('Server is successfully running');
+    });
+})
+.catch((err) => {
+    console.error("Databse connection failed. Error is :", err);
 });
