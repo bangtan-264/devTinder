@@ -2,7 +2,7 @@ const express = require("express");
 const profileRouter = express.Router();
 const { userAuth } = require("../middlewares/auth.js");
 const { validateEditProfileData } = require("../utils/validation.js");
-const { validate } = require("../models/user.js");
+// const { validate } = require("../models/user.js");
 
 profileRouter.get("/profile", userAuth, async (req, res) => {
     try {

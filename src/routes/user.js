@@ -1,6 +1,68 @@
 const express = require("express");
 const userRouter = express.Router();
 const User = require("../models/user.js");
+const { userAuth } = require("../middlewares/auth.js");
+const ConnectionRequest = require("../models/connectionRequest.js");
+const { connection } = require("mongoose");
+
+const USER_SAFE_DATA = "firstName lastName age gender skills about photoUrl";
+
+userRouter.get("/user/requests/received", userAuth, async (req, res) => {
+    try {
+        //fetch all the pending req (interested, targetUserId, source userId - name )
+        const loggedInUser = req.user;
+        const connectionRequest = await ConnectionRequest.find({
+            targetUserId: loggedInUser._id,
+            status: "interested"
+        }).populate("sourceUserId", USER_SAFE_DATA);
+
+        if (!connectionRequest) {
+            throw new Error("You don't have any pending requests yet!");
+        }
+
+        res.json({
+            status: true,
+            data: connectionRequest
+        });
+    } catch (err) {
+        res.status(400).json({
+            status: false,
+            error: err?.message ?? "Something went wrong. Please try again later."
+        })
+    }
+});
+
+userRouter.get("/user/connections", userAuth, async (req, res) => {
+    try {
+        const loggedInUser = req.user;
+        const connections = await ConnectionRequest.find({
+            $or: [
+                { sourceUserId: loggedInUser._id, status: "accepted" },
+                { targetUserId: loggedInUser._id, status: "accepted" }
+            ]
+        }).populate("sourceUserId", USER_SAFE_DATA).populate("targetUserId", USER_SAFE_DATA);
+
+        console.log("connections", connections);
+
+        const connectionsData = connections.map(data => {
+            if (data.targetUserId.equals(loggedInUser._id)) {
+                return data.sourceUserId;
+            }
+            return data.targetUserId;
+        });
+
+        res.json({
+            status: true,
+            data: connectionsData
+        });
+
+    } catch (err) {
+        res.status(400).json({
+            status: false,
+            error: err?.message ?? "Something went wrong. Please try again later."
+        })
+    }
+});
 
 //get user by email 
 userRouter.get("/user", async (req, res) => {
