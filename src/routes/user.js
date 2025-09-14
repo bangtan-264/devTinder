@@ -60,6 +60,47 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
         res.status(400).json({
             status: false,
             error: err?.message ?? "Something went wrong. Please try again later."
+        });
+    }
+});
+
+userRouter.get("/feed", userAuth, async (req, res) => {
+    try {
+        const loggedInUser = req.user;
+        const page = Math.min(req.query.page, 5);
+        const limit = Math.min(req.query.limit, 5);
+        const skip = (page - 1) * limit;
+
+        console.log(page, limit, skip);
+        const connections = await ConnectionRequest.find({
+            $or: [
+                { sourceUserId: loggedInUser._id },
+                { targetUserId: loggedInUser._id },
+            ]
+        }).select("sourceUserId targetUserId");
+
+        const hideUsersFromFeed = new Set();
+        connections.forEach(data => {
+            hideUsersFromFeed.add(data.sourceUserId);
+            hideUsersFromFeed.add(data.targetUserId);
+        });
+
+        const feed = await User.find({
+            $and: [
+                { _id: { $nin: Array.from(hideUsersFromFeed) } },
+                { _id: { $ne: loggedInUser._id } }
+            ]
+        }).select(USER_SAFE_DATA).skip(skip).limit(limit);
+
+        res.json({
+            status: true,
+            data: feed
+        });
+
+    } catch (err) {
+        res.status(400).json({
+            status: false,
+            error: err?.message ?? "Something went wrong. Please try again later."
         })
     }
 });
@@ -80,18 +121,18 @@ userRouter.get("/user", async (req, res) => {
 });
 
 //Feed api - get all users data 
-userRouter.get("/feed", async (req, res) => {
-    try {
-        const users = await User.find({});
-        if (users.length === 0) {
-            res.status(404).send("Something went wrong.");
-        } else {
-            res.send("Users : " + users);
-        }
-    } catch (err) {
-        res.status(400).send("Something went wrong.");
-    }
-});
+// userRouter.get("/feed", async (req, res) => {
+//     try {
+//         const users = await User.find({});
+//         if (users.length === 0) {
+//             res.status(404).send("Something went wrong.");
+//         } else {
+//             res.send("Users : " + users);
+//         }
+//     } catch (err) {
+//         res.status(400).send("Something went wrong.");
+//     }
+// });
 
 //delete user by id 
 userRouter.delete("/user", async (req, res) => {
